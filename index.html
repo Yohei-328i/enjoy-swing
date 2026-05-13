@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>リアル・タイミング・プロ(カウンター付)</title>
+    <style>
+        body { 
+            background: #000; color: #fff; text-align: center; 
+            font-family: sans-serif; overflow: hidden; margin: 0; 
+        }
+        body.white-bg { background-color: #fff !important; }
+        
+        /* 上部情報バー */
+        #header-info {
+            position: absolute; top: 0; left: 0; width: 100%;
+            display: flex; justify-content: space-between; padding: 15px 25px;
+            box-sizing: border-box; z-index: 20; background: rgba(0,0,0,0.5);
+            font-size: 24px; font-weight: bold; color: #aaa;
+        }
+        .info-label { font-size: 16px; color: #666; margin-right: 5px; }
+
+        #display-container { display: flex; justify-content: center; align-items: center; height: 100vh; }
+        #circle-container { width: 70vw; height: 70vw; position: relative; display: flex; justify-content: center; align-items: center; }
+        #svg-circle { width: 100%; height: 100%; transform: rotate(-90deg); }
+        #circle-bg { fill: none; stroke: #333; stroke-width: 10; }
+        #circle-progress {
+            fill: none; stroke: #00ff00; stroke-width: 10;
+            stroke-dasharray: 628; stroke-dashoffset: 628;
+        }
+        #center-text { position: absolute; width: 100%; z-index: 10; }
+        #status-text { font-size: 12vw; font-weight: bold; margin: 0; }
+        #result-text { font-size: 10vw; color: #fff; font-weight: bold; display: none; line-height: 1.1; }
+        .speed-num { font-size: 18vw; display: block; }
+        body.white-bg #result-text, body.white-bg #status-text { color: #000; }
+        
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; justify-content: center; align-items: center; z-index: 100; }
+        #start-btn { padding: 20px 40px; font-size: 24px; font-weight: bold; background: #00ff00; color: #000; border-radius: 10px; border: none; }
+        #timer-info { position: absolute; bottom: 20px; right: 20px; color: #333; font-size: 18px; }
+    </style>
+</head>
+<body>
+
+    <div id="header-info">
+        <div id="elapsed-time"><span class="info-label">TIME</span>00:00</div>
+        <div id="pitch-count"><span class="info-label">COUNT</span>0回</div>
+    </div>
+
+    <div id="overlay">
+        <button id="start-btn">タップしてスタート<br>(10秒後に開始します)</button>
+    </div>
+
+    <div id="display-container">
+        <div id="circle-container">
+            <svg id="svg-circle" viewBox="0 0 220 220">
+                <circle id="circle-bg" cx="110" cy="110" r="100" />
+                <circle id="circle-progress" cx="110" cy="110" r="100" />
+            </svg>
+            <div id="center-text">
+                <p id="status-text">準備完了</p>
+                <div id="result-text"></div>
+            </div>
+        </div>
+    </div>
+    <div id="timer-info"></div>
+
+    <script>
+        const courses = ["ど真ん中", "内角高め", "内角真ん中", "内角低め", "外角高め", "外角真ん中", "外角低め"];
+        const speeds = [60, 70, 80, 90]; 
+        const motionTime = 1200; 
+        const totalCycle = 8500; 
+        const realDistanceMeters = 14.5; 
+
+        const statusText = document.getElementById('status-text');
+        const resultText = document.getElementById('result-text');
+        const progressCircle = document.getElementById('circle-progress');
+        const overlay = document.getElementById('overlay');
+        const startBtn = document.getElementById('start-btn');
+        const timeDisplay = document.getElementById('elapsed-time');
+        const countDisplay = document.getElementById('pitch-count');
+
+        let wakeLock = null;
+        let pitchCount = 0;
+        let startTime = null;
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playCatchSound() {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        async function requestWakeLock() {
+            if ('wakeLock' in navigator) {
+                try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
+            }
+        }
+
+        // タイマー更新関数
+        function updateTimer() {
+            if (!startTime) return;
+            const now = Date.now();
+            const diff = Math.floor((now - startTime) / 1000);
+            const m = String(Math.floor(diff / 60)).padStart(2, '0');
+            const s = String(diff % 60).padStart(2, '0');
+            timeDisplay.innerHTML = `<span class="info-label">TIME</span>${m}:${s}`;
+        }
+
+        startBtn.addEventListener('click', () => {
+            audioCtx.resume();
+            overlay.style.display = 'none';
+            requestWakeLock();
+            
+            let count = 10;
+            statusText.innerText = count;
+            
+            const countdownInterval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    statusText.innerText = count;
+                } else {
+                    clearInterval(countdownInterval);
+                    startTime = Date.now(); // 最初のセット直前に計測開始
+                    setInterval(updateTimer, 1000); // タイマー開始
+                    runSequence();
+                    setInterval(runSequence, totalCycle);
+                }
+            }, 1000);
+        });
+
+        function runSequence() {
+            document.body.classList.remove('white-bg');
+            statusText.style.display = 'block';
+            resultText.style.display = 'none';
+            statusText.innerText = "セット";
+            statusText.style.color = "#fff";
+            progressCircle.style.transition = 'none';
+            progressCircle.style.strokeDashoffset = 628;
+
+            const wait = 1200 + Math.random() * 1500;
+            const speed = speeds[Math.floor(Math.random() * speeds.length)];
+            const course = courses[Math.floor(Math.random() * courses.length)];
+            const reachTime = (realDistanceMeters / (speed / 3.6)) * 1000;
+
+            setTimeout(() => {
+                statusText.innerText = "投球";
+                statusText.style.color = "#00ff00";
+                progressCircle.style.transition = `stroke-dashoffset ${motionTime}ms linear`;
+                progressCircle.style.strokeDashoffset = 0;
+
+                setTimeout(() => {
+                    // リリースの瞬間
+                    document.body.classList.add('white-bg');
+                    statusText.style.display = 'none';
+                    resultText.innerHTML = `${course}<span class="speed-num">${speed}</span>`;
+                    resultText.style.color = "#000";
+                    resultText.style.display = 'block';
+
+                    setTimeout(() => { 
+                        document.body.classList.remove('white-bg'); 
+                        resultText.style.color = "#ff0"; 
+                    }, 200);
+
+                    // インパクトの瞬間
+                    setTimeout(() => {
+                        document.body.classList.add('white-bg');
+                        playCatchSound();
+                        
+                        // 投球カウントを増やす
+                        pitchCount++;
+                        countDisplay.innerHTML = `<span class="info-label">COUNT</span>${pitchCount}回`;
+                        
+                        setTimeout(() => { document.body.classList.remove('white-bg'); }, 100);
+                    }, reachTime);
+
+                }, motionTime);
+            }, wait);
+        }
+    </script>
+</body>
+</html>
