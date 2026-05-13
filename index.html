@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>リアル・タイミング・プロ(レスポンシブ版)</title>
+    <title>リアル・タイミング・プロ(高視認性版)</title>
     <style>
         body { 
             background: #000; color: #fff; text-align: center; 
@@ -14,58 +14,63 @@
         /* 上部情報バー */
         #header-info {
             position: absolute; top: 0; left: 0; width: 100%;
-            display: flex; justify-content: space-between; padding: 10px 20px;
+            display: flex; justify-content: space-between; padding: 15px 25px;
             box-sizing: border-box; z-index: 20; background: rgba(0,0,0,0.5);
-            font-size: 4vmin; font-weight: bold; color: #aaa;
+            font-size: 24px; font-weight: bold; color: #aaa;
         }
-        .info-label { font-size: 2.5vmin; color: #666; margin-right: 5px; }
+        .info-label { font-size: 16px; color: #666; margin-right: 5px; }
 
-        #display-container { display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; }
+        #display-container { display: flex; justify-content: center; align-items: center; height: 100vh; }
+        #main-content { width: 85vw; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         
-        /* 修正の要：vmin（幅か高さの小さい方）を基準にする */
-        #circle-container { 
-            width: 80vmin; height: 80vmin; 
-            position: relative; display: flex; justify-content: center; align-items: center; 
-        }
-        
-        #svg-circle { width: 100%; height: 100%; transform: rotate(-90deg); position: absolute; }
+        /* 円グラフ：リリース時に消去 */
+        #svg-circle { width: 75vw; height: 75vw; transform: rotate(-90deg); position: absolute; }
         #circle-bg { fill: none; stroke: #333; stroke-width: 6; }
         #circle-progress {
             fill: none; stroke: #00ff00; stroke-width: 6;
             stroke-dasharray: 628; stroke-dashoffset: 628;
         }
 
-        /* 9分割ゾーンもvmin基準に */
+        /* 9分割ゾーン：中央に配置 */
         #zone-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             grid-template-rows: repeat(3, 1fr);
-            width: 35vmin;
-            height: 45vmin;
-            border: 2px solid #555;
-            gap: 2px;
+            width: 45vw;
+            height: 55vw;
+            border: 3px solid #555;
+            gap: 4px;
             margin-bottom: 2vh;
-            display: none;
+            display: none; 
+            z-index: 30;
         }
-        .zone-cell { border: 1px solid #333; background: rgba(255,255,255,0.05); }
+        .zone-cell {
+            border: 1px solid #333;
+            background: rgba(255,255,255,0.05);
+        }
         .zone-cell.active {
-            background: rgba(255, 0, 0, 0.8);
-            box-shadow: 0 0 20px red;
+            background: rgba(255, 0, 0, 0.9);
+            box-shadow: 0 0 30px red;
             border-color: #fff;
         }
 
-        #center-text { position: absolute; width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 10; }
-        #status-text { font-size: 10vmin; font-weight: bold; margin: 0; }
-        #result-text { font-size: 8vmin; color: #fff; font-weight: bold; display: none; }
+        #center-text { position: relative; width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 10; }
+        #status-text { font-size: 12vw; font-weight: bold; margin: 0; z-index: 40;}
+        #result-text { font-size: 8vw; color: #fff; font-weight: bold; display: none; z-index: 40;}
         
-        .speed-val { font-size: 14vmin; }
-        .unit { font-size: 4vmin; margin-left: 5px; color: #ccc; }
+        /* 球速表示 */
+        .speed-val { font-size: 20vw; }
+        .unit { font-size: 5vw; margin-left: 8px; color: #ccc; }
 
-        body.white-bg #status-text, body.white-bg .speed-val { color: #000; }
+        /* フラッシュ中の文字色 */
+        body.white-bg #status-text, 
+        body.white-bg .speed-val, 
+        body.white-bg #zone-grid { color: #000; border-color: #000; }
         body.white-bg .unit { color: #333; }
+        body.white-bg .zone-cell { border-color: #999; }
         
         #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; justify-content: center; align-items: center; z-index: 100; }
-        #start-btn { padding: 3vmin 6vmin; font-size: 4vmin; font-weight: bold; background: #00ff00; color: #000; border-radius: 10px; border: none; cursor: pointer; }
+        #start-btn { padding: 20px 40px; font-size: 24px; font-weight: bold; background: #00ff00; color: #000; border-radius: 10px; border: none; }
     </style>
 </head>
 <body>
@@ -80,7 +85,7 @@
     </div>
 
     <div id="display-container">
-        <div id="circle-container">
+        <div id="main-content">
             <svg id="svg-circle" viewBox="0 0 220 220">
                 <circle id="circle-bg" cx="110" cy="110" r="100" />
                 <circle id="circle-progress" cx="110" cy="110" r="100" />
@@ -107,6 +112,7 @@
         const statusText = document.getElementById('status-text');
         const resultText = document.getElementById('result-text');
         const zoneGrid = document.getElementById('zone-grid');
+        const svgCircle = document.getElementById('svg-circle');
         const progressCircle = document.getElementById('circle-progress');
         const overlay = document.getElementById('overlay');
         const startBtn = document.getElementById('start-btn');
@@ -170,10 +176,12 @@
         });
 
         function runSequence() {
+            // 初期化
             document.body.classList.remove('white-bg');
             statusText.style.display = 'block';
             resultText.style.display = 'none';
             zoneGrid.style.display = 'none';
+            svgCircle.style.display = 'block'; // 円を表示
             for(let i=0; i<9; i++) document.getElementById(`cell-${i}`).classList.remove('active');
 
             statusText.innerText = "セット";
@@ -182,8 +190,7 @@
             progressCircle.style.strokeDashoffset = 628;
 
             const wait = 1200 + Math.random() * 1500;
-            const speedIndex = Math.floor(Math.random() * speeds.length);
-            const speed = speeds[speedIndex];
+            const speed = speeds[Math.floor(Math.random() * speeds.length)];
             const courseIdx = Math.floor(Math.random() * 9);
             const reachTime = (realDistanceMeters / (speed / 3.6)) * 1000;
 
@@ -194,20 +201,25 @@
                 progressCircle.style.strokeDashoffset = 0;
 
                 setTimeout(() => {
-                    document.body.classList.add('white-bg');
-                    statusText.style.display = 'none';
-                    zoneGrid.style.display = 'grid';
+                    // --- 【リリースの瞬間】 ---
+                    document.body.classList.add('white-bg'); // フラッシュ開始
+                    svgCircle.style.display = 'none';      // 円を即座に消す
+                    statusText.style.display = 'none';      // 「投球」の文字を消す
+                    
+                    zoneGrid.style.display = 'grid';        // 9分割表示
                     document.getElementById(`cell-${courseIdx}`).classList.add('active');
                     
                     resultText.innerHTML = `<span class="speed-val">${speed}</span><span class="unit">km/h</span>`;
                     resultText.style.display = 'block';
-                    resultText.style.color = "#000";
+                    resultText.style.color = "#000";        // 白背景時は黒文字
 
+                    // 0.15秒後に黒背景に戻して視認性を上げる
                     setTimeout(() => { 
                         document.body.classList.remove('white-bg'); 
                         resultText.style.color = "#fff"; 
-                    }, 200);
+                    }, 150);
 
+                    // インパクトの瞬間
                     setTimeout(() => {
                         document.body.classList.add('white-bg');
                         playCatchSound();
