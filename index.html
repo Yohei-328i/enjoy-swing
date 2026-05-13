@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>リアル・タイミング・プロ(カウンター付)</title>
+    <title>リアル・タイミング・プロ(ゾーン表示版)</title>
     <style>
         body { 
             background: #000; color: #fff; text-align: center; 
@@ -21,22 +21,50 @@
         .info-label { font-size: 16px; color: #666; margin-right: 5px; }
 
         #display-container { display: flex; justify-content: center; align-items: center; height: 100vh; }
-        #circle-container { width: 70vw; height: 70vw; position: relative; display: flex; justify-content: center; align-items: center; }
-        #svg-circle { width: 100%; height: 100%; transform: rotate(-90deg); }
-        #circle-bg { fill: none; stroke: #333; stroke-width: 10; }
+        #circle-container { width: 85vw; height: 85vw; position: relative; display: flex; justify-content: center; align-items: center; }
+        
+        #svg-circle { width: 100%; height: 100%; transform: rotate(-90deg); position: absolute; }
+        #circle-bg { fill: none; stroke: #333; stroke-width: 6; }
         #circle-progress {
-            fill: none; stroke: #00ff00; stroke-width: 10;
+            fill: none; stroke: #00ff00; stroke-width: 6;
             stroke-dasharray: 628; stroke-dashoffset: 628;
         }
-        #center-text { position: absolute; width: 100%; z-index: 10; }
-        #status-text { font-size: 12vw; font-weight: bold; margin: 0; }
-        #result-text { font-size: 10vw; color: #fff; font-weight: bold; display: none; line-height: 1.1; }
-        .speed-num { font-size: 18vw; display: block; }
-        body.white-bg #result-text, body.white-bg #status-text { color: #000; }
+
+        /* 9分割ゾーン */
+        #zone-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            width: 40vw;
+            height: 50vw;
+            border: 2px solid #555;
+            gap: 2px;
+            margin-bottom: 2vh;
+            display: none; /* リリース時のみ表示 */
+        }
+        .zone-cell {
+            border: 1px solid #333;
+            background: rgba(255,255,255,0.05);
+        }
+        .zone-cell.active {
+            background: rgba(255, 0, 0, 0.8);
+            box-shadow: 0 0 20px red;
+            border-color: #fff;
+        }
+
+        #center-text { position: absolute; width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 10; }
+        #status-text { font-size: 10vw; font-weight: bold; margin: 0; }
+        #result-text { font-size: 8vw; color: #fff; font-weight: bold; display: none; }
+        
+        /* 球速表示 */
+        .speed-val { font-size: 16vw; }
+        .unit { font-size: 4vw; margin-left: 5px; color: #ccc; }
+
+        body.white-bg #status-text, body.white-bg .speed-val { color: #000; }
+        body.white-bg .unit { color: #333; }
         
         #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; justify-content: center; align-items: center; z-index: 100; }
         #start-btn { padding: 20px 40px; font-size: 24px; font-weight: bold; background: #00ff00; color: #000; border-radius: 10px; border: none; }
-        #timer-info { position: absolute; bottom: 20px; right: 20px; color: #333; font-size: 18px; }
     </style>
 </head>
 <body>
@@ -58,14 +86,19 @@
             </svg>
             <div id="center-text">
                 <p id="status-text">準備完了</p>
+                <div id="zone-grid">
+                    <div class="zone-cell" id="cell-0"></div><div class="zone-cell" id="cell-1"></div><div class="zone-cell" id="cell-2"></div>
+                    <div class="zone-cell" id="cell-3"></div><div class="zone-cell" id="cell-4"></div><div class="zone-cell" id="cell-5"></div>
+                    <div class="zone-cell" id="cell-6"></div><div class="zone-cell" id="cell-7"></div><div class="zone-cell" id="cell-8"></div>
+                </div>
                 <div id="result-text"></div>
             </div>
         </div>
     </div>
-    <div id="timer-info"></div>
 
     <script>
-        const courses = ["ど真ん中", "内角高め", "内角真ん中", "内角低め", "外角高め", "外角真ん中", "外角低め"];
+        // ゾーンの定義（0-8のインデックス）
+        const courseNames = ["内角高め", "真ん中高め", "外角高め", "内角真ん中", "ど真ん中", "外角真ん中", "内角低め", "真ん中低め", "外角低め"];
         const speeds = [60, 70, 80, 90]; 
         const motionTime = 1200; 
         const totalCycle = 8500; 
@@ -73,6 +106,7 @@
 
         const statusText = document.getElementById('status-text');
         const resultText = document.getElementById('result-text');
+        const zoneGrid = document.getElementById('zone-grid');
         const progressCircle = document.getElementById('circle-progress');
         const overlay = document.getElementById('overlay');
         const startBtn = document.getElementById('start-btn');
@@ -104,7 +138,6 @@
             }
         }
 
-        // タイマー更新関数
         function updateTimer() {
             if (!startTime) return;
             const now = Date.now();
@@ -128,8 +161,8 @@
                     statusText.innerText = count;
                 } else {
                     clearInterval(countdownInterval);
-                    startTime = Date.now(); // 最初のセット直前に計測開始
-                    setInterval(updateTimer, 1000); // タイマー開始
+                    startTime = Date.now();
+                    setInterval(updateTimer, 1000);
                     runSequence();
                     setInterval(runSequence, totalCycle);
                 }
@@ -140,14 +173,19 @@
             document.body.classList.remove('white-bg');
             statusText.style.display = 'block';
             resultText.style.display = 'none';
+            zoneGrid.style.display = 'none';
+            // 全ゾーン消去
+            for(let i=0; i<9; i++) document.getElementById(`cell-${i}`).classList.remove('active');
+
             statusText.innerText = "セット";
             statusText.style.color = "#fff";
             progressCircle.style.transition = 'none';
             progressCircle.style.strokeDashoffset = 628;
 
             const wait = 1200 + Math.random() * 1500;
-            const speed = speeds[Math.floor(Math.random() * speeds.length)];
-            const course = courses[Math.floor(Math.random() * courses.length)];
+            const speedIndex = Math.floor(Math.random() * speeds.length);
+            const speed = speeds[speedIndex];
+            const courseIdx = Math.floor(Math.random() * 9);
             const reachTime = (realDistanceMeters / (speed / 3.6)) * 1000;
 
             setTimeout(() => {
@@ -160,24 +198,24 @@
                     // リリースの瞬間
                     document.body.classList.add('white-bg');
                     statusText.style.display = 'none';
-                    resultText.innerHTML = `${course}<span class="speed-num">${speed}</span>`;
-                    resultText.style.color = "#000";
+                    zoneGrid.style.display = 'grid';
+                    document.getElementById(`cell-${courseIdx}`).classList.add('active');
+                    
+                    resultText.innerHTML = `<span class="speed-val">${speed}</span><span class="unit">km/h</span>`;
                     resultText.style.display = 'block';
+                    resultText.style.color = "#000";
 
                     setTimeout(() => { 
                         document.body.classList.remove('white-bg'); 
-                        resultText.style.color = "#ff0"; 
+                        resultText.style.color = "#fff"; 
                     }, 200);
 
                     // インパクトの瞬間
                     setTimeout(() => {
                         document.body.classList.add('white-bg');
                         playCatchSound();
-                        
-                        // 投球カウントを増やす
                         pitchCount++;
                         countDisplay.innerHTML = `<span class="info-label">COUNT</span>${pitchCount}回`;
-                        
                         setTimeout(() => { document.body.classList.remove('white-bg'); }, 100);
                     }, reachTime);
 
