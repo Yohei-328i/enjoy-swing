@@ -3,80 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>リアル・タイミング・プロ(完全版)</title>
+    <title>リアル・タイミング・プロ</title>
     <style>
         body { 
             background: #000; color: #fff; text-align: center; 
             font-family: sans-serif; overflow: hidden; margin: 0; 
         }
+
         body.white-bg { background-color: #fff !important; }
-        
-        /* 上部情報バー */
+
         #header-info {
             position: fixed; top: 0; left: 0; width: 100%;
             display: flex; justify-content: space-between; padding: 10px 20px;
             box-sizing: border-box; z-index: 50; background: rgba(0,0,0,0.7);
             font-size: 20px; font-weight: bold; color: #aaa;
         }
+
         .info-label { font-size: 14px; color: #666; margin-right: 5px; }
 
-        /* 下部コントロールバー */
         #control-bar {
             position: fixed; bottom: 20px; left: 0; width: 100%;
             display: none; justify-content: center; gap: 20px; z-index: 60;
         }
+
         .ctrl-btn {
-            padding: 12px 30px; font-size: 18px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer;
+            padding: 12px 30px; font-size: 18px; font-weight: bold;
+            border: none; border-radius: 8px; cursor: pointer;
         }
+
         #pause-btn { background: #ffaa00; color: #000; }
         #end-btn { background: #ff3333; color: #fff; }
 
-        /* メインコンテナ */
         #display-container { 
             display: flex; justify-content: center; align-items: center; 
             height: 100vh; padding-top: 50px; padding-bottom: 70px; box-sizing: border-box; 
         }
-        
+
         #main-content { 
             position: relative; display: flex; flex-direction: column; 
             align-items: center; justify-content: center; 
             width: 90vw; height: 75vh; 
         }
-        
-        #svg-circle { width: 65vmin; height: 65vmin; transform: rotate(-90deg); position: absolute; }
-        #circle-bg { fill: none; stroke: #333; stroke-width: 6; }
+
+        #svg-circle {
+            width: 65vmin; height: 65vmin;
+            transform: rotate(-90deg);
+            position: absolute;
+        }
+
+        #circle-bg {
+            fill: none; stroke: #333; stroke-width: 6;
+        }
+
         #circle-progress {
             fill: none; stroke: #00ff00; stroke-width: 6;
             stroke-dasharray: 628; stroke-dashoffset: 628;
         }
 
         #zone-grid {
-            display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
-            width: 35vmin; height: 45vmin; border: 2px solid #555; gap: 4px; margin-bottom: 10px; display: none; z-index: 30;
+            display: none;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            width: 35vmin; height: 45vmin;
+            border: 2px solid #555;
+            gap: 4px; margin-bottom: 10px;
+            z-index: 30;
         }
-        .zone-cell { border: 1px solid #333; background: rgba(255,255,255,0.05); }
-        .zone-cell.active { background: rgba(255, 0, 0, 0.9); box-shadow: 0 0 20px red; border-color: #fff; }
 
-        #center-text { position: relative; width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 10; }
-        #status-text { font-size: 8vmin; font-weight: bold; margin: 0; z-index: 40;}
-        #result-text { display: none; z-index: 40;}
-        
-        .speed-val { font-size: 15vmin; font-weight: bold; line-height: 1; }
-        .unit { font-size: 4vmin; margin-left: 5px; color: #ccc; }
+        .zone-cell {
+            border: 1px solid #333;
+            background: rgba(255,255,255,0.05);
+        }
 
-        body.white-bg #status-text, body.white-bg .speed-val, body.white-bg #zone-grid { color: #000; border-color: #000; }
+        .zone-cell.active {
+            background: rgba(255, 0, 0, 0.9);
+            box-shadow: 0 0 20px red;
+            border-color: #fff;
+        }
+
+        #center-text {
+            position: relative; width: 100%;
+            display: flex; flex-direction: column;
+            align-items: center; z-index: 10;
+        }
+
+        #status-text {
+            font-size: 8vmin; font-weight: bold;
+            margin: 0; z-index: 40;
+        }
+
+        #result-text {
+            display: none; z-index: 40;
+        }
+
+        .speed-val {
+            font-size: 15vmin;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .unit {
+            font-size: 4vmin;
+            margin-left: 5px;
+            color: #ccc;
+        }
+
+        body.white-bg #status-text,
+        body.white-bg .speed-val,
+        body.white-bg #zone-grid {
+            color: #000;
+            border-color: #000;
+        }
+
         body.white-bg .unit { color: #333; }
         body.white-bg .zone-cell { border-color: #999; }
-        
-        /* スタート・リザルト画面共通 */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; }
-        .big-btn { padding: 20px 40px; font-size: 24px; font-weight: bold; background: #00ff00; color: #000; border-radius: 10px; border: none; cursor: pointer; }
-        
-        /* リザルト画面 */
-        #result-screen { display: none; z-index: 110; }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: #000;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            z-index: 100;
+        }
+
+        .big-btn {
+            padding: 20px 40px;
+            font-size: 24px;
+            font-weight: bold;
+            background: #00ff00;
+            color: #000;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+        }
+
+        #result-screen {
+            display: none;
+            z-index: 110;
+        }
+
         .summary-box { margin-bottom: 40px; }
-        .summary-title { font-size: 28px; color: #00ff00; margin-bottom: 20px; font-weight: bold; }
-        .summary-item { font-size: 45px; font-weight: bold; margin: 15px 0; }
+
+        .summary-title {
+            font-size: 28px;
+            color: #00ff00;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .summary-item {
+            font-size: 45px;
+            font-weight: bold;
+            margin: 15px 0;
+        }
     </style>
 </head>
 <body>
@@ -93,10 +173,12 @@
     <div id="result-screen" class="modal-overlay">
         <div class="summary-box">
             <div class="summary-title">練習お疲れ様でした！</div>
-            <div id="final-time" class="summary-item">時間: --:--</div>
+            <div id="final-time" class="summary-item">時間: --分--秒</div>
             <div id="final-count" class="summary-item">回数: --回</div>
         </div>
-        <button onclick="location.reload();" class="big-btn" style="background: #fff;">もう一度練習する</button>
+        <button onclick="location.reload();" class="big-btn" style="background: #fff;">
+            もう一度練習する
+        </button>
     </div>
 
     <div id="display-container">
@@ -105,13 +187,22 @@
                 <circle id="circle-bg" cx="110" cy="110" r="100" />
                 <circle id="circle-progress" cx="110" cy="110" r="100" />
             </svg>
+
             <div id="center-text">
                 <p id="status-text">準備完了</p>
+
                 <div id="zone-grid">
-                    <div class="zone-cell" id="cell-0"></div><div class="zone-cell" id="cell-1"></div><div class="zone-cell" id="cell-2"></div>
-                    <div class="zone-cell" id="cell-3"></div><div class="zone-cell" id="cell-4"></div><div class="zone-cell" id="cell-5"></div>
-                    <div class="zone-cell" id="cell-6"></div><div class="zone-cell" id="cell-7"></div><div class="zone-cell" id="cell-8"></div>
+                    <div class="zone-cell" id="cell-0"></div>
+                    <div class="zone-cell" id="cell-1"></div>
+                    <div class="zone-cell" id="cell-2"></div>
+                    <div class="zone-cell" id="cell-3"></div>
+                    <div class="zone-cell" id="cell-4"></div>
+                    <div class="zone-cell" id="cell-5"></div>
+                    <div class="zone-cell" id="cell-6"></div>
+                    <div class="zone-cell" id="cell-7"></div>
+                    <div class="zone-cell" id="cell-8"></div>
                 </div>
+
                 <div id="result-text"></div>
             </div>
         </div>
@@ -123,10 +214,11 @@
     </div>
 
     <script>
-        const speeds = [60, 70, 80, 90]; 
-        const motionTime = 1200; 
-        const totalCycle = 8500; 
-        const realDistanceMeters = 14.5; 
+        const speeds = [60, 70, 80, 90];
+        const motionTime = 1200;
+        const totalCycle = 8500;
+        const realDistanceMeters = 14.5;
+        const circleLength = 628;
 
         const statusText = document.getElementById('status-text');
         const resultText = document.getElementById('result-text');
@@ -143,168 +235,289 @@
         const resultScreen = document.getElementById('result-screen');
 
         let wakeLock = null;
+        let audioCtx = null;
+
         let pitchCount = 0;
-        let startTime = null;
         let totalElapsedSeconds = 0;
         let timerInterval = null;
-        let sequenceTimeout = null;
-        let isPaused = false;
         let cycleTimer = null;
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let countdownInterval = null;
+        let sequenceTimeouts = [];
+        let isPaused = false;
+        let isRunning = false;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
 
         function playCatchSound() {
+            if (!audioCtx) return;
+
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
+
             osc.type = 'square';
             osc.frequency.setValueAtTime(150, audioCtx.currentTime);
             osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
+
             gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+
             osc.connect(gain);
             gain.connect(audioCtx.destination);
+
             osc.start();
             osc.stop(audioCtx.currentTime + 0.1);
         }
 
+        function setSeqTimeout(fn, delay) {
+            const id = setTimeout(() => {
+                sequenceTimeouts = sequenceTimeouts.filter(timeoutId => timeoutId !== id);
+                fn();
+            }, delay);
+
+            sequenceTimeouts.push(id);
+            return id;
+        }
+
+        function clearSequenceTimeouts() {
+            sequenceTimeouts.forEach(clearTimeout);
+            sequenceTimeouts = [];
+        }
+
+        function clearAllTimers() {
+            clearSequenceTimeouts();
+
+            if (cycleTimer) {
+                clearInterval(cycleTimer);
+                cycleTimer = null;
+            }
+
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+        }
+
+        function resetMainDisplay() {
+            document.body.classList.remove('white-bg');
+
+            statusText.style.display = 'block';
+            statusText.style.color = '#fff';
+
+            resultText.style.display = 'none';
+            resultText.style.color = '#fff';
+            resultText.innerHTML = '';
+
+            zoneGrid.style.display = 'none';
+
+            svgCircle.style.display = 'block';
+            progressCircle.style.transition = 'none';
+            progressCircle.style.strokeDashoffset = circleLength;
+
+            for (let i = 0; i < 9; i++) {
+                document.getElementById(`cell-${i}`).classList.remove('active');
+            }
+        }
+
         function updateTimer() {
-            if (isPaused) return;
+            if (isPaused || !isRunning) return;
+
             totalElapsedSeconds++;
+
             const m = String(Math.floor(totalElapsedSeconds / 60)).padStart(2, '0');
             const s = String(totalElapsedSeconds % 60).padStart(2, '0');
+
             timeDisplay.innerHTML = `<span class="info-label">TIME</span>${m}:${s}`;
         }
 
+        async function requestWakeLock() {
+            if (!('wakeLock' in navigator)) return;
+
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+            } catch (e) {
+                wakeLock = null;
+            }
+        }
+
+        async function releaseWakeLock() {
+            if (!wakeLock) return;
+
+            try {
+                await wakeLock.release();
+            } catch (e) {
+                // 解除失敗時も実害は少ないため無視
+            } finally {
+                wakeLock = null;
+            }
+        }
+
         startBtn.addEventListener('click', () => {
-            audioCtx.resume();
+            initAudio();
+            requestWakeLock();
+
             overlay.style.display = 'none';
             controlBar.style.display = 'flex';
-            if ('wakeLock' in navigator) { 
-                navigator.wakeLock.request('screen').then(lock => { wakeLock = lock; }).catch(()=>{}); 
-            }
-            
+
+            isRunning = true;
+            isPaused = false;
+
             let count = 10;
             statusText.innerText = count;
-            const countdownInterval = setInterval(() => {
+
+            countdownInterval = setInterval(() => {
                 count--;
+
                 if (count > 0) {
                     statusText.innerText = count;
                 } else {
                     clearInterval(countdownInterval);
+                    countdownInterval = null;
+
                     timerInterval = setInterval(updateTimer, 1000);
                     startLoop();
                 }
             }, 1000);
         });
 
-        // ループの管理
         function startLoop() {
+            clearAllTimers();
+
             runSequence();
+
             cycleTimer = setInterval(() => {
-                if (!isPaused) runSequence();
+                if (!isPaused && isRunning) {
+                    runSequence();
+                }
             }, totalCycle);
         }
 
-        // 一時停止・再開の処理
         pauseBtn.addEventListener('click', () => {
+            if (!isRunning) return;
+
             if (!isPaused) {
-                // 一時停止にする
                 isPaused = true;
-                pauseBtn.innerText = "再開";
-                pauseBtn.style.background = "#00ff00";
-                clearTimeout(sequenceTimeout);
-                clearInterval(cycleTimer);
-                statusText.style.display = 'block';
-                statusText.innerText = "ストップ";
-                statusText.style.color = "#ffaa00";
-                resultText.style.display = 'none';
-                zoneGrid.style.display = 'none';
-                svgCircle.style.display = 'block';
-                progressCircle.style.transition = 'none';
-                progressCircle.style.strokeDashoffset = 628;
+
+                clearAllTimers();
+                document.body.classList.remove('white-bg');
+
+                pauseBtn.innerText = '再開';
+                pauseBtn.style.background = '#00ff00';
+
+                resetMainDisplay();
+                statusText.innerText = 'ストップ';
+                statusText.style.color = '#ffaa00';
+
             } else {
-                // 再開する
                 isPaused = false;
-                pauseBtn.innerText = "一時停止";
-                pauseBtn.style.background = "#ffaa00";
+
+                pauseBtn.innerText = '一時停止';
+                pauseBtn.style.background = '#ffaa00';
+
                 startLoop();
             }
         });
 
-        // 練習終了の処理
-        endBtn.addEventListener('click', () => {
-            clearTimeout(sequenceTimeout);
-            clearInterval(cycleTimer);
-            clearInterval(timerInterval);
-            
-            // スリープ防止を安全に解除
-            if (wakeLock !== null) {
-                wakeLock.release().then(() => { wakeLock = null; });
+        endBtn.addEventListener('click', async () => {
+            isRunning = false;
+            isPaused = false;
+
+            clearAllTimers();
+
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
             }
 
-            // 結果画面の構築
+            document.body.classList.remove('white-bg');
+            await releaseWakeLock();
+
             const m = String(Math.floor(totalElapsedSeconds / 60)).padStart(2, '0');
             const s = String(totalElapsedSeconds % 60).padStart(2, '0');
+
             document.getElementById('final-time').innerText = `時間: ${m}分${s}秒`;
             document.getElementById('final-count').innerText = `回数: ${pitchCount}回`;
-            
+
             controlBar.style.display = 'none';
             resultScreen.style.display = 'flex';
         });
 
         function runSequence() {
-            if (isPaused) return;
-            document.body.classList.remove('white-bg');
-            statusText.style.display = 'block';
-            resultText.style.display = 'none';
-            zoneGrid.style.display = 'none';
-            svgCircle.style.display = 'block';
-            for(let i=0; i<9; i++) document.getElementById(`cell-${i}`).classList.remove('active');
+            if (isPaused || !isRunning) return;
 
-            statusText.innerText = "セット";
-            statusText.style.color = "#fff";
-            progressCircle.style.transition = 'none';
-            progressCircle.style.strokeDashoffset = 628;
+            resetMainDisplay();
+
+            statusText.innerText = 'セット';
+            statusText.style.color = '#fff';
 
             const wait = 1200 + Math.random() * 1500;
             const speed = speeds[Math.floor(Math.random() * speeds.length)];
             const courseIdx = Math.floor(Math.random() * 9);
             const reachTime = (realDistanceMeters / (speed / 3.6)) * 1000;
 
-            sequenceTimeout = setTimeout(() => {
-                if (isPaused) return;
-                statusText.innerText = "投球";
-                statusText.style.color = "#00ff00";
+            setSeqTimeout(() => {
+                if (isPaused || !isRunning) return;
+
+                statusText.innerText = '投球';
+                statusText.style.color = '#00ff00';
+
                 progressCircle.style.transition = `stroke-dashoffset ${motionTime}ms linear`;
                 progressCircle.style.strokeDashoffset = 0;
 
-                sequenceTimeout = setTimeout(() => {
-                    if (isPaused) return;
+                setSeqTimeout(() => {
+                    if (isPaused || !isRunning) return;
+
                     document.body.classList.add('white-bg');
+
                     svgCircle.style.display = 'none';
                     statusText.style.display = 'none';
+
                     zoneGrid.style.display = 'grid';
                     document.getElementById(`cell-${courseIdx}`).classList.add('active');
+
                     resultText.innerHTML = `<span class="speed-val">${speed}</span><span class="unit">km/h</span>`;
                     resultText.style.display = 'block';
-                    resultText.style.color = "#000";
+                    resultText.style.color = '#000';
 
-                    sequenceTimeout = setTimeout(() => { 
-                        document.body.classList.remove('white-bg'); 
-                        resultText.style.color = "#fff"; 
+                    setSeqTimeout(() => {
+                        if (isPaused || !isRunning) return;
+
+                        document.body.classList.remove('white-bg');
+                        resultText.style.color = '#fff';
                     }, 150);
 
-                    sequenceTimeout = setTimeout(() => {
-                        if (isPaused) return;
+                    setSeqTimeout(() => {
+                        if (isPaused || !isRunning) return;
+
                         document.body.classList.add('white-bg');
                         playCatchSound();
+
                         pitchCount++;
                         countDisplay.innerHTML = `<span class="info-label">COUNT</span>${pitchCount}回`;
-                        sequenceTimeout = setTimeout(() => { document.body.classList.remove('white-bg'); }, 100);
+
+                        setSeqTimeout(() => {
+                            if (isPaused || !isRunning) return;
+                            document.body.classList.remove('white-bg');
+                        }, 100);
+
                     }, reachTime);
 
                 }, motionTime);
+
             }, wait);
         }
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && isRunning && !isPaused) {
+                requestWakeLock();
+            }
+        });
     </script>
 </body>
 </html>
