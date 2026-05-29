@@ -1,523 +1,446 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>リアル・タイミング・プロ</title>
-    <style>
-        body { 
-            background: #000; color: #fff; text-align: center; 
-            font-family: sans-serif; overflow: hidden; margin: 0; 
-        }
-
-        body.white-bg { background-color: #fff !important; }
-
-        #header-info {
-            position: fixed; top: 0; left: 0; width: 100%;
-            display: flex; justify-content: space-between; padding: 10px 20px;
-            box-sizing: border-box; z-index: 50; background: rgba(0,0,0,0.7);
-            font-size: 20px; font-weight: bold; color: #aaa;
-        }
-
-        .info-label { font-size: 14px; color: #666; margin-right: 5px; }
-
-        #control-bar {
-            position: fixed; bottom: 20px; left: 0; width: 100%;
-            display: none; justify-content: center; gap: 20px; z-index: 60;
-        }
-
-        .ctrl-btn {
-            padding: 12px 30px; font-size: 18px; font-weight: bold;
-            border: none; border-radius: 8px; cursor: pointer;
-        }
-
-        #pause-btn { background: #ffaa00; color: #000; }
-        #end-btn { background: #ff3333; color: #fff; }
-
-        #display-container { 
-            display: flex; justify-content: center; align-items: center; 
-            height: 100vh; padding-top: 50px; padding-bottom: 70px; box-sizing: border-box; 
-        }
-
-        #main-content { 
-            position: relative; display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; 
-            width: 90vw; height: 75vh; 
-        }
-
-        #svg-circle {
-            width: 65vmin; height: 65vmin;
-            transform: rotate(-90deg);
-            position: absolute;
-        }
-
-        #circle-bg {
-            fill: none; stroke: #333; stroke-width: 6;
-        }
-
-        #circle-progress {
-            fill: none; stroke: #00ff00; stroke-width: 6;
-            stroke-dasharray: 628; stroke-dashoffset: 628;
-        }
-
-        #zone-grid {
-            display: none;
-            grid-template-columns: repeat(3, 1fr);
-            grid-template-rows: repeat(3, 1fr);
-            width: 35vmin; height: 45vmin;
-            border: 2px solid #555;
-            gap: 4px; margin-bottom: 10px;
-            z-index: 30;
-        }
-
-        .zone-cell {
-            border: 1px solid #333;
-            background: rgba(255,255,255,0.05);
-        }
-
-        .zone-cell.active {
-            background: rgba(255, 0, 0, 0.9);
-            box-shadow: 0 0 20px red;
-            border-color: #fff;
-        }
-
-        #center-text {
-            position: relative; width: 100%;
-            display: flex; flex-direction: column;
-            align-items: center; z-index: 10;
-        }
-
-        #status-text {
-            font-size: 8vmin; font-weight: bold;
-            margin: 0; z-index: 40;
-        }
-
-        #result-text {
-            display: none; z-index: 40;
-        }
-
-        .speed-val {
-            font-size: 15vmin;
-            font-weight: bold;
-            line-height: 1;
-        }
-
-        .unit {
-            font-size: 4vmin;
-            margin-left: 5px;
-            color: #ccc;
-        }
-
-        body.white-bg #status-text,
-        body.white-bg .speed-val,
-        body.white-bg #zone-grid {
-            color: #000;
-            border-color: #000;
-        }
-
-        body.white-bg .unit { color: #333; }
-        body.white-bg .zone-cell { border-color: #999; }
-
-        .modal-overlay {
-            position: fixed; top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: #000;
-            display: flex; flex-direction: column;
-            justify-content: center; align-items: center;
-            z-index: 100;
-        }
-
-        .big-btn {
-            padding: 20px 40px;
-            font-size: 24px;
-            font-weight: bold;
-            background: #00ff00;
-            color: #000;
-            border-radius: 10px;
-            border: none;
-            cursor: pointer;
-        }
-
-        #result-screen {
-            display: none;
-            z-index: 110;
-        }
-
-        .summary-box { margin-bottom: 40px; }
-
-        .summary-title {
-            font-size: 28px;
-            color: #00ff00;
-            margin-bottom: 20px;
-            font-weight: bold;
-        }
-
-        .summary-item {
-            font-size: 45px;
-            font-weight: bold;
-            margin: 15px 0;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>リアル・タイミング・プロ</title>
+<style>
+body{background:#000;color:#fff;text-align:center;font-family:sans-serif;overflow:hidden;margin:0}
+body.white-bg{background-color:#fff!important}
+#header-info{position:fixed;top:0;left:0;width:100%;display:flex;justify-content:space-between;padding:10px 20px;box-sizing:border-box;z-index:50;background:rgba(0,0,0,.7);font-size:20px;font-weight:bold;color:#aaa}
+.info-label{font-size:14px;color:#666;margin-right:5px}
+#control-bar{position:fixed;bottom:20px;left:0;width:100%;display:none;justify-content:center;gap:20px;z-index:60}
+.ctrl-btn{padding:12px 30px;font-size:18px;font-weight:bold;border:none;border-radius:8px;cursor:pointer}
+#pause-btn{background:#ffaa00;color:#000}
+#end-btn{background:#ff3333;color:#fff}
+#display-container{display:flex;justify-content:center;align-items:center;height:100vh;padding-top:50px;padding-bottom:70px;box-sizing:border-box}
+#main-content{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;width:90vw;height:75vh}
+#svg-circle{width:65vmin;height:65vmin;transform:rotate(-90deg);position:absolute}
+#circle-bg{fill:none;stroke:#333;stroke-width:6}
+#circle-progress{fill:none;stroke:#00ff00;stroke-width:6;stroke-dasharray:628;stroke-dashoffset:628}
+#zone-grid{display:none;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);width:35vmin;height:45vmin;border:2px solid #555;gap:4px;margin-bottom:10px;z-index:30}
+.zone-cell{border:1px solid #333;background:rgba(255,255,255,.05)}
+.zone-cell.active{background:rgba(255,0,0,.9);box-shadow:0 0 20px red;border-color:#fff}
+#center-text{position:relative;width:100%;display:flex;flex-direction:column;align-items:center;z-index:10}
+#status-text{font-size:8vmin;font-weight:bold;margin:0;z-index:40}
+#result-text{display:none;z-index:40}
+.speed-val{font-size:15vmin;font-weight:bold;line-height:1}
+.unit{font-size:4vmin;margin-left:5px;color:#ccc}
+body.white-bg #status-text,body.white-bg .speed-val,body.white-bg #zone-grid{color:#000;border-color:#000}
+body.white-bg .unit{color:#333}
+body.white-bg .zone-cell{border-color:#999}
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:#000;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:100}
+.big-btn{padding:20px 40px;font-size:24px;font-weight:bold;background:#00ff00;color:#000;border-radius:10px;border:none;cursor:pointer}
+#result-screen{display:none;z-index:110}
+.summary-box{margin-bottom:40px}
+.summary-title{font-size:28px;color:#00ff00;margin-bottom:20px;font-weight:bold}
+.summary-item{font-size:38px;font-weight:bold;margin:15px 0}
+.summary-sub{font-size:24px;color:#ccc;margin:10px 0}
+</style>
 </head>
+
 <body>
 
-    <div id="header-info">
-        <div id="elapsed-time"><span class="info-label">TIME</span>00:00</div>
-        <div id="pitch-count"><span class="info-label">COUNT</span>0回</div>
+<div id="header-info">
+    <div id="elapsed-time"><span class="info-label">TIME</span>00:00</div>
+    <div id="pitch-count"><span class="info-label">COUNT</span>0回</div>
+</div>
+
+<div id="overlay" class="modal-overlay">
+    <button id="start-btn" class="big-btn">タップしてスタート</button>
+</div>
+
+<div id="result-screen" class="modal-overlay">
+    <div class="summary-box">
+        <div class="summary-title">練習お疲れ様でした！</div>
+        <div id="final-date" class="summary-sub">練習日: ----/--/--</div>
+        <div id="final-start-time" class="summary-sub">開始時間: --:--</div>
+        <div id="final-time" class="summary-item">時間: --分--秒</div>
+        <div id="final-count" class="summary-item">回数: --回</div>
     </div>
+    <button onclick="location.reload();" class="big-btn" style="background:#fff">もう一度練習する</button>
+</div>
 
-    <div id="overlay" class="modal-overlay">
-        <button id="start-btn" class="big-btn">タップしてスタート</button>
-    </div>
+<div id="display-container">
+    <div id="main-content">
+        <svg id="svg-circle" viewBox="0 0 220 220">
+            <circle id="circle-bg" cx="110" cy="110" r="100"></circle>
+            <circle id="circle-progress" cx="110" cy="110" r="100"></circle>
+        </svg>
 
-    <div id="result-screen" class="modal-overlay">
-        <div class="summary-box">
-            <div class="summary-title">練習お疲れ様でした！</div>
-            <div id="final-time" class="summary-item">時間: --分--秒</div>
-            <div id="final-count" class="summary-item">回数: --回</div>
-        </div>
-        <button onclick="location.reload();" class="big-btn" style="background: #fff;">
-            もう一度練習する
-        </button>
-    </div>
+        <div id="center-text">
+            <p id="status-text">準備完了</p>
 
-    <div id="display-container">
-        <div id="main-content">
-            <svg id="svg-circle" viewBox="0 0 220 220">
-                <circle id="circle-bg" cx="110" cy="110" r="100" />
-                <circle id="circle-progress" cx="110" cy="110" r="100" />
-            </svg>
-
-            <div id="center-text">
-                <p id="status-text">準備完了</p>
-
-                <div id="zone-grid">
-                    <div class="zone-cell" id="cell-0"></div>
-                    <div class="zone-cell" id="cell-1"></div>
-                    <div class="zone-cell" id="cell-2"></div>
-                    <div class="zone-cell" id="cell-3"></div>
-                    <div class="zone-cell" id="cell-4"></div>
-                    <div class="zone-cell" id="cell-5"></div>
-                    <div class="zone-cell" id="cell-6"></div>
-                    <div class="zone-cell" id="cell-7"></div>
-                    <div class="zone-cell" id="cell-8"></div>
-                </div>
-
-                <div id="result-text"></div>
+            <div id="zone-grid">
+                <div class="zone-cell" id="cell-0"></div>
+                <div class="zone-cell" id="cell-1"></div>
+                <div class="zone-cell" id="cell-2"></div>
+                <div class="zone-cell" id="cell-3"></div>
+                <div class="zone-cell" id="cell-4"></div>
+                <div class="zone-cell" id="cell-5"></div>
+                <div class="zone-cell" id="cell-6"></div>
+                <div class="zone-cell" id="cell-7"></div>
+                <div class="zone-cell" id="cell-8"></div>
             </div>
+
+            <div id="result-text"></div>
         </div>
     </div>
+</div>
 
-    <div id="control-bar">
-        <button id="pause-btn" class="ctrl-btn">一時停止</button>
-        <button id="end-btn" class="ctrl-btn">練習終了</button>
-    </div>
+<div id="control-bar">
+    <button id="pause-btn" class="ctrl-btn">一時停止</button>
+    <button id="end-btn" class="ctrl-btn">練習終了</button>
+</div>
 
-    <script>
-        const speeds = [60, 70, 80, 90];
-        const motionTime = 1200;
-        const totalCycle = 8500;
-        const realDistanceMeters = 14.5;
-        const circleLength = 628;
+<script>
+const speeds = [60, 70, 80, 90];
+const motionTime = 1200;
+const totalCycle = 8500;
+const realDistanceMeters = 14.5;
+const circleLength = 628;
 
-        const statusText = document.getElementById('status-text');
-        const resultText = document.getElementById('result-text');
-        const zoneGrid = document.getElementById('zone-grid');
-        const svgCircle = document.getElementById('svg-circle');
-        const progressCircle = document.getElementById('circle-progress');
-        const overlay = document.getElementById('overlay');
-        const startBtn = document.getElementById('start-btn');
-        const timeDisplay = document.getElementById('elapsed-time');
-        const countDisplay = document.getElementById('pitch-count');
-        const controlBar = document.getElementById('control-bar');
-        const pauseBtn = document.getElementById('pause-btn');
-        const endBtn = document.getElementById('end-btn');
-        const resultScreen = document.getElementById('result-screen');
+const statusText = document.getElementById('status-text');
+const resultText = document.getElementById('result-text');
+const zoneGrid = document.getElementById('zone-grid');
+const svgCircle = document.getElementById('svg-circle');
+const progressCircle = document.getElementById('circle-progress');
+const overlay = document.getElementById('overlay');
+const startBtn = document.getElementById('start-btn');
+const timeDisplay = document.getElementById('elapsed-time');
+const countDisplay = document.getElementById('pitch-count');
+const controlBar = document.getElementById('control-bar');
+const pauseBtn = document.getElementById('pause-btn');
+const endBtn = document.getElementById('end-btn');
+const resultScreen = document.getElementById('result-screen');
 
-        let wakeLock = null;
-        let audioCtx = null;
+let wakeLock = null;
+let audioCtx = null;
 
-        let pitchCount = 0;
-        let totalElapsedSeconds = 0;
-        let timerInterval = null;
-        let cycleTimer = null;
-        let countdownInterval = null;
-        let sequenceTimeouts = [];
-        let isPaused = false;
-        let isRunning = false;
+let pitchCount = 0;
+let totalElapsedSeconds = 0;
+let timerInterval = null;
+let cycleTimer = null;
+let countdownInterval = null;
+let sequenceTimeouts = [];
 
-        function initAudio() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-        }
+let isPaused = false;
+let isRunning = false;
+let practiceStartDate = null;
 
-        function playCatchSound() {
-            if (!audioCtx) return;
+function initAudio(){
+    if(!audioCtx){
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if(audioCtx.state === 'suspended'){
+        audioCtx.resume();
+    }
+}
 
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
+function playCatchSound(){
+    if(!audioCtx) return;
 
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
 
-            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
 
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
 
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.1);
-        }
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
 
-        function setSeqTimeout(fn, delay) {
-            const id = setTimeout(() => {
-                sequenceTimeouts = sequenceTimeouts.filter(timeoutId => timeoutId !== id);
-                fn();
-            }, delay);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.1);
+}
 
-            sequenceTimeouts.push(id);
-            return id;
-        }
+function setSeqTimeout(fn, delay){
+    const id = setTimeout(() => {
+        sequenceTimeouts = sequenceTimeouts.filter(timeoutId => timeoutId !== id);
+        fn();
+    }, delay);
 
-        function clearSequenceTimeouts() {
-            sequenceTimeouts.forEach(clearTimeout);
-            sequenceTimeouts = [];
-        }
+    sequenceTimeouts.push(id);
+    return id;
+}
 
-        function clearAllTimers() {
-            clearSequenceTimeouts();
+function clearSequenceTimeouts(){
+    sequenceTimeouts.forEach(clearTimeout);
+    sequenceTimeouts = [];
+}
 
-            if (cycleTimer) {
-                clearInterval(cycleTimer);
-                cycleTimer = null;
-            }
+function clearAllCycleTimers(){
+    clearSequenceTimeouts();
 
-            if (countdownInterval) {
-                clearInterval(countdownInterval);
-                countdownInterval = null;
-            }
-        }
+    if(cycleTimer){
+        clearInterval(cycleTimer);
+        cycleTimer = null;
+    }
 
-        function resetMainDisplay() {
-            document.body.classList.remove('white-bg');
+    if(countdownInterval){
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+    }
+}
 
-            statusText.style.display = 'block';
-            statusText.style.color = '#fff';
+function resetMainDisplay(){
+    document.body.classList.remove('white-bg');
 
-            resultText.style.display = 'none';
-            resultText.style.color = '#fff';
-            resultText.innerHTML = '';
+    statusText.style.display = 'block';
+    statusText.style.color = '#fff';
 
-            zoneGrid.style.display = 'none';
+    resultText.style.display = 'none';
+    resultText.style.color = '#fff';
+    resultText.innerHTML = '';
 
-            svgCircle.style.display = 'block';
-            progressCircle.style.transition = 'none';
-            progressCircle.style.strokeDashoffset = circleLength;
+    zoneGrid.style.display = 'none';
 
-            for (let i = 0; i < 9; i++) {
-                document.getElementById(`cell-${i}`).classList.remove('active');
-            }
-        }
+    svgCircle.style.display = 'block';
+    progressCircle.style.transition = 'none';
+    progressCircle.style.strokeDashoffset = circleLength;
 
-        function updateTimer() {
-            if (isPaused || !isRunning) return;
+    for(let i = 0; i < 9; i++){
+        document.getElementById(`cell-${i}`).classList.remove('active');
+    }
+}
 
-            totalElapsedSeconds++;
+function updateTimer(){
+    if(isPaused || !isRunning) return;
 
-            const m = String(Math.floor(totalElapsedSeconds / 60)).padStart(2, '0');
-            const s = String(totalElapsedSeconds % 60).padStart(2, '0');
+    totalElapsedSeconds++;
 
-            timeDisplay.innerHTML = `<span class="info-label">TIME</span>${m}:${s}`;
-        }
+    const m = String(Math.floor(totalElapsedSeconds / 60)).padStart(2, '0');
+    const s = String(totalElapsedSeconds % 60).padStart(2, '0');
 
-        async function requestWakeLock() {
-            if (!('wakeLock' in navigator)) return;
+    timeDisplay.innerHTML = `<span class="info-label">TIME</span>${m}:${s}`;
+}
 
-            try {
-                wakeLock = await navigator.wakeLock.request('screen');
-            } catch (e) {
-                wakeLock = null;
-            }
-        }
+async function requestWakeLock(){
+    if(!('wakeLock' in navigator)) return;
 
-        async function releaseWakeLock() {
-            if (!wakeLock) return;
+    try{
+        wakeLock = await navigator.wakeLock.request('screen');
+    }catch(e){
+        wakeLock = null;
+    }
+}
 
-            try {
-                await wakeLock.release();
-            } catch (e) {
-                // 解除失敗時も実害は少ないため無視
-            } finally {
-                wakeLock = null;
-            }
-        }
+async function releaseWakeLock(){
+    if(!wakeLock) return;
 
-        startBtn.addEventListener('click', () => {
-            initAudio();
-            requestWakeLock();
+    try{
+        await wakeLock.release();
+    }catch(e){
+    }finally{
+        wakeLock = null;
+    }
+}
 
-            overlay.style.display = 'none';
-            controlBar.style.display = 'flex';
+function formatDate(date){
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}/${m}/${d}`;
+}
 
-            isRunning = true;
-            isPaused = false;
+function formatTime(date){
+    const h = String(date.getHours()).padStart(2, '0');
+    const m = String(date.getMinutes()).padStart(2, '0');
+    return `${h}:${m}`;
+}
 
-            let count = 10;
+function startCountdownThenLoop(){
+    clearAllCycleTimers();
+    resetMainDisplay();
+
+    let count = 10;
+    statusText.innerText = count;
+    statusText.style.color = '#fff';
+
+    countdownInterval = setInterval(() => {
+        if(isPaused || !isRunning) return;
+
+        count--;
+
+        if(count > 0){
             statusText.innerText = count;
-
-            countdownInterval = setInterval(() => {
-                count--;
-
-                if (count > 0) {
-                    statusText.innerText = count;
-                } else {
-                    clearInterval(countdownInterval);
-                    countdownInterval = null;
-
-                    timerInterval = setInterval(updateTimer, 1000);
-                    startLoop();
-                }
-            }, 1000);
-        });
-
-        function startLoop() {
-            clearAllTimers();
-
-            runSequence();
-
-            cycleTimer = setInterval(() => {
-                if (!isPaused && isRunning) {
-                    runSequence();
-                }
-            }, totalCycle);
+        }else{
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+            startLoop();
         }
+    }, 1000);
+}
 
-        pauseBtn.addEventListener('click', () => {
-            if (!isRunning) return;
+startBtn.addEventListener('click', () => {
+    initAudio();
+    requestWakeLock();
 
-            if (!isPaused) {
-                isPaused = true;
+    practiceStartDate = new Date();
 
-                clearAllTimers();
-                document.body.classList.remove('white-bg');
+    overlay.style.display = 'none';
+    controlBar.style.display = 'flex';
 
-                pauseBtn.innerText = '再開';
-                pauseBtn.style.background = '#00ff00';
+    isRunning = true;
+    isPaused = false;
 
-                resetMainDisplay();
-                statusText.innerText = 'ストップ';
-                statusText.style.color = '#ffaa00';
+    if(!timerInterval){
+        timerInterval = setInterval(updateTimer, 1000);
+    }
 
-            } else {
-                isPaused = false;
+    startCountdownThenLoop();
+});
 
-                pauseBtn.innerText = '一時停止';
-                pauseBtn.style.background = '#ffaa00';
+function startLoop(){
+    clearAllCycleTimers();
 
-                startLoop();
-            }
-        });
+    runSequence();
 
-        endBtn.addEventListener('click', async () => {
-            isRunning = false;
-            isPaused = false;
+    cycleTimer = setInterval(() => {
+        if(!isPaused && isRunning){
+            runSequence();
+        }
+    }, totalCycle);
+}
 
-            clearAllTimers();
+pauseBtn.addEventListener('click', () => {
+    if(!isRunning) return;
 
-            if (timerInterval) {
-                clearInterval(timerInterval);
-                timerInterval = null;
-            }
+    if(!isPaused){
+        isPaused = true;
 
-            document.body.classList.remove('white-bg');
-            await releaseWakeLock();
+        /*
+          仕様1：
+          一時停止ボタンを押したサイクルはカウントしない。
+          そのため、現在サイクル中の到達処理・カウント加算処理をすべて破棄する。
+        */
+        clearAllCycleTimers();
+        document.body.classList.remove('white-bg');
 
-            const m = String(Math.floor(totalElapsedSeconds / 60)).padStart(2, '0');
-            const s = String(totalElapsedSeconds % 60).padStart(2, '0');
+        pauseBtn.innerText = '再開';
+        pauseBtn.style.background = '#00ff00';
 
-            document.getElementById('final-time').innerText = `時間: ${m}分${s}秒`;
-            document.getElementById('final-count').innerText = `回数: ${pitchCount}回`;
+        resetMainDisplay();
+        statusText.innerText = 'ストップ';
+        statusText.style.color = '#ffaa00';
 
-            controlBar.style.display = 'none';
-            resultScreen.style.display = 'flex';
-        });
+    }else{
+        isPaused = false;
 
-        function runSequence() {
-            if (isPaused || !isRunning) return;
+        pauseBtn.innerText = '一時停止';
+        pauseBtn.style.background = '#ffaa00';
 
-            resetMainDisplay();
+        /*
+          仕様2・3：
+          再開時は10秒カウントダウン後にサイクル復帰。
+          経過時間と素振り回数はリセットしない。
+        */
+        startCountdownThenLoop();
+    }
+});
 
-            statusText.innerText = 'セット';
-            statusText.style.color = '#fff';
+endBtn.addEventListener('click', async () => {
+    isRunning = false;
+    isPaused = false;
 
-            const wait = 1200 + Math.random() * 1500;
-            const speed = speeds[Math.floor(Math.random() * speeds.length)];
-            const courseIdx = Math.floor(Math.random() * 9);
-            const reachTime = (realDistanceMeters / (speed / 3.6)) * 1000;
+    clearAllCycleTimers();
+
+    if(timerInterval){
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+
+    document.body.classList.remove('white-bg');
+    await releaseWakeLock();
+
+    const m = String(Math.floor(totalElapsedSeconds / 60)).padStart(2, '0');
+    const s = String(totalElapsedSeconds % 60).padStart(2, '0');
+
+    const dateToShow = practiceStartDate || new Date();
+
+    document.getElementById('final-date').innerText = `練習日: ${formatDate(dateToShow)}`;
+    document.getElementById('final-start-time').innerText = `開始時間: ${formatTime(dateToShow)}`;
+    document.getElementById('final-time').innerText = `時間: ${m}分${s}秒`;
+    document.getElementById('final-count').innerText = `回数: ${pitchCount}回`;
+
+    controlBar.style.display = 'none';
+    resultScreen.style.display = 'flex';
+});
+
+function runSequence(){
+    if(isPaused || !isRunning) return;
+
+    resetMainDisplay();
+
+    statusText.innerText = 'セット';
+    statusText.style.color = '#fff';
+
+    const wait = 1200 + Math.random() * 1500;
+    const speed = speeds[Math.floor(Math.random() * speeds.length)];
+    const courseIdx = Math.floor(Math.random() * 9);
+    const reachTime = (realDistanceMeters / (speed / 3.6)) * 1000;
+
+    setSeqTimeout(() => {
+        if(isPaused || !isRunning) return;
+
+        statusText.innerText = '投球';
+        statusText.style.color = '#00ff00';
+
+        progressCircle.style.transition = `stroke-dashoffset ${motionTime}ms linear`;
+        progressCircle.style.strokeDashoffset = 0;
+
+        setSeqTimeout(() => {
+            if(isPaused || !isRunning) return;
+
+            document.body.classList.add('white-bg');
+
+            svgCircle.style.display = 'none';
+            statusText.style.display = 'none';
+
+            zoneGrid.style.display = 'grid';
+            document.getElementById(`cell-${courseIdx}`).classList.add('active');
+
+            resultText.innerHTML = `<span class="speed-val">${speed}</span><span class="unit">km/h</span>`;
+            resultText.style.display = 'block';
+            resultText.style.color = '#000';
 
             setSeqTimeout(() => {
-                if (isPaused || !isRunning) return;
+                if(isPaused || !isRunning) return;
 
-                statusText.innerText = '投球';
-                statusText.style.color = '#00ff00';
+                document.body.classList.remove('white-bg');
+                resultText.style.color = '#fff';
+            }, 150);
 
-                progressCircle.style.transition = `stroke-dashoffset ${motionTime}ms linear`;
-                progressCircle.style.strokeDashoffset = 0;
+            setSeqTimeout(() => {
+                if(isPaused || !isRunning) return;
+
+                document.body.classList.add('white-bg');
+                playCatchSound();
+
+                pitchCount++;
+                countDisplay.innerHTML = `<span class="info-label">COUNT</span>${pitchCount}回`;
 
                 setSeqTimeout(() => {
-                    if (isPaused || !isRunning) return;
+                    if(isPaused || !isRunning) return;
+                    document.body.classList.remove('white-bg');
+                }, 100);
 
-                    document.body.classList.add('white-bg');
+            }, reachTime);
 
-                    svgCircle.style.display = 'none';
-                    statusText.style.display = 'none';
+        }, motionTime);
 
-                    zoneGrid.style.display = 'grid';
-                    document.getElementById(`cell-${courseIdx}`).classList.add('active');
+    }, wait);
+}
 
-                    resultText.innerHTML = `<span class="speed-val">${speed}</span><span class="unit">km/h</span>`;
-                    resultText.style.display = 'block';
-                    resultText.style.color = '#000';
+document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'visible' && isRunning && !isPaused){
+        requestWakeLock();
+    }
+});
+</script>
 
-                    setSeqTimeout(() => {
-                        if (isPaused || !isRunning) return;
-
-                        document.body.classList.remove('white-bg');
-                        resultText.style.color = '#fff';
-                    }, 150);
-
-                    setSeqTimeout(() => {
-                        if (isPaused || !isRunning) return;
-
-                        document.body.classList.add('white-bg');
-                        playCatchSound();
-
-                        pitchCount++;
-                        countDisplay.innerHTML = `<span class="info-label">COUNT</span>${pitchCount}回`;
-
-                        setSeqTimeout(() => {
-                            if (isPaused || !isRunning) return;
-                            document.body.classList.remove('white-bg');
-                        }, 100);
-
-                    }, reachTime);
-
-                }, motionTime);
-
-            }, wait);
-        }
-
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible' && isRunning && !isPaused) {
-                requestWakeLock();
-            }
-        });
-    </script>
 </body>
 </html>
