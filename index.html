@@ -115,7 +115,7 @@ const endBtn = document.getElementById('end-btn');
 const resultScreen = document.getElementById('result-screen');
 
 let wakeLock = null;
-let audioCtx = null;
+let catchSound = null;
 
 let pitchCount = 0;
 let totalElapsedSeconds = 0;
@@ -129,32 +129,32 @@ let isRunning = false;
 let practiceStartDate = null;
 
 function initAudio(){
-    if(!audioCtx){
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(!catchSound){
+        catchSound = new Audio('catch01.wav');
+        catchSound.preload = 'auto';
+        catchSound.volume = 1.0;
+        catchSound.load();
     }
-    if(audioCtx.state === 'suspended'){
-        audioCtx.resume();
-    }
+
+    catchSound.play().then(() => {
+        catchSound.pause();
+        catchSound.currentTime = 0;
+    }).catch(() => {});
 }
 
 function playCatchSound(){
-    if(!audioCtx) return;
+    if(!catchSound){
+        initAudio();
+    }
 
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
+    if(!catchSound) return;
 
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
+    catchSound.pause();
+    catchSound.currentTime = 0;
 
-    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.1);
+    catchSound.play().catch(() => {
+        // iOS/Safariなどで再生がブロックされた場合は無音で継続
+    });
 }
 
 function setSeqTimeout(fn, delay){
@@ -312,11 +312,6 @@ pauseBtn.addEventListener('click', () => {
     if(!isPaused){
         isPaused = true;
 
-        /*
-          仕様1：
-          一時停止ボタンを押したサイクルはカウントしない。
-          そのため、現在サイクル中の到達処理・カウント加算処理をすべて破棄する。
-        */
         clearAllCycleTimers();
         document.body.classList.remove('white-bg');
 
@@ -333,11 +328,6 @@ pauseBtn.addEventListener('click', () => {
         pauseBtn.innerText = '一時停止';
         pauseBtn.style.background = '#ffaa00';
 
-        /*
-          仕様2・3：
-          再開時は10秒カウントダウン後にサイクル復帰。
-          経過時間と素振り回数はリセットしない。
-        */
         startCountdownThenLoop();
     }
 });
