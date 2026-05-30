@@ -240,6 +240,17 @@ body.white-bg .zone-cell{
   color:#fff;
   margin-bottom:18px;
 }
+
+#retry-btn{
+  background:#fff;
+  color:#000;
+  margin-bottom:18px;
+}
+
+#close-btn{
+  background:#555;
+  color:#fff;
+}
 </style>
 </head>
 
@@ -267,8 +278,12 @@ body.white-bg .zone-cell{
     練習結果をシェア
   </button>
 
-  <button onclick="location.reload();" class="big-btn" style="background:#fff">
+  <button id="retry-btn" class="big-btn" onclick="location.reload();">
     もう一度練習する
+  </button>
+
+  <button id="close-btn" class="big-btn">
+    画面を閉じる
   </button>
 </div>
 
@@ -325,6 +340,7 @@ const pauseBtn = document.getElementById('pause-btn');
 const endBtn = document.getElementById('end-btn');
 const resultScreen = document.getElementById('result-screen');
 const shareBtn = document.getElementById('share-btn');
+const closeBtn = document.getElementById('close-btn');
 
 let wakeLock = null;
 
@@ -614,6 +630,14 @@ shareBtn.addEventListener('click', async () => {
       alert('この端末ではシェア機能を利用できません');
     }
   }
+});
+
+closeBtn.addEventListener('click', () => {
+  window.close();
+
+  setTimeout(() => {
+    alert('このブラウザでは自動で閉じられない場合があります。手動でタブを閉じてください。');
+  }, 300);
 });
 
 function runSequence(){
