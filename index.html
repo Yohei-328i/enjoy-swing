@@ -213,7 +213,7 @@ body.white-bg .zone-cell{
 }
 
 .summary-box{
-  margin-bottom:40px;
+  margin-bottom:32px;
 }
 
 .summary-title{
@@ -233,6 +233,12 @@ body.white-bg .zone-cell{
   font-size:24px;
   color:#ccc;
   margin:10px 0;
+}
+
+#share-btn{
+  background:#1da1f2;
+  color:#fff;
+  margin-bottom:18px;
 }
 </style>
 </head>
@@ -256,6 +262,11 @@ body.white-bg .zone-cell{
     <div id="final-time" class="summary-item">時間: --分--秒</div>
     <div id="final-count" class="summary-item">回数: --回</div>
   </div>
+
+  <button id="share-btn" class="big-btn">
+    練習結果をシェア
+  </button>
+
   <button onclick="location.reload();" class="big-btn" style="background:#fff">
     もう一度練習する
   </button>
@@ -313,14 +324,10 @@ const controlBar = document.getElementById('control-bar');
 const pauseBtn = document.getElementById('pause-btn');
 const endBtn = document.getElementById('end-btn');
 const resultScreen = document.getElementById('result-screen');
+const shareBtn = document.getElementById('share-btn');
 
 let wakeLock = null;
 
-/*
-  Web Audio API方式。
-  new Audio().play() よりも発音タイミングが安定しやすい。
-  スタート直後の試し再生は行わない。
-*/
 let audioCtx = null;
 let catchBuffer = null;
 
@@ -334,6 +341,7 @@ let sequenceTimeouts = [];
 let isPaused = false;
 let isRunning = false;
 let practiceStartDate = null;
+let finalShareText = '';
 
 async function initAudio(){
   if(!audioCtx){
@@ -525,10 +533,6 @@ pauseBtn.addEventListener('click', () => {
   if(!isPaused){
     isPaused = true;
 
-    /*
-      一時停止ボタンを押したサイクルはカウントしない。
-      そのため、現在サイクル中の到達処理・カウント加算処理を破棄する。
-    */
     clearAllCycleTimers();
     document.body.classList.remove('white-bg');
 
@@ -545,10 +549,6 @@ pauseBtn.addEventListener('click', () => {
     pauseBtn.innerText = '一時停止';
     pauseBtn.style.background = '#ffaa00';
 
-    /*
-      再開時は10秒カウントダウン後にサイクル復帰。
-      経過時間と素振り回数はリセットしない。
-    */
     startCountdownThenLoop();
   }
 });
@@ -577,8 +577,43 @@ endBtn.addEventListener('click', async () => {
   document.getElementById('final-time').innerText = `時間: ${m}分${s}秒`;
   document.getElementById('final-count').innerText = `回数: ${pitchCount}回`;
 
+  finalShareText =
+`Enjoy Swing 練習結果
+
+練習日: ${formatDate(dateToShow)}
+開始時間: ${formatTime(dateToShow)}
+練習時間: ${m}分${s}秒
+素振り回数: ${pitchCount}回
+
+#少年野球 #素振り #タイミング練習`;
+
   controlBar.style.display = 'none';
   resultScreen.style.display = 'flex';
+});
+
+shareBtn.addEventListener('click', async () => {
+  const shareText = finalShareText || 'Enjoy Swingで練習しました。';
+
+  const shareData = {
+    title: 'Enjoy Swing 練習結果',
+    text: shareText,
+    url: window.location.href
+  };
+
+  if(navigator.share){
+    try{
+      await navigator.share(shareData);
+    }catch(e){
+      // ユーザーが共有をキャンセルした場合は何もしない
+    }
+  }else{
+    try{
+      await navigator.clipboard.writeText(`${shareText}\n\n${window.location.href}`);
+      alert('練習結果をコピーしました');
+    }catch(e){
+      alert('この端末ではシェア機能を利用できません');
+    }
+  }
 });
 
 function runSequence(){
@@ -628,12 +663,6 @@ function runSequence(){
       setSeqTimeout(() => {
         if(isPaused || !isRunning) return;
 
-        /*
-          到達タイミング。
-          捕球音と白フラッシュを同じタイマー内で実行する。
-          Web Audio APIで事前デコード済みの音を鳴らすため、
-          new Audio().play() より同期しやすい。
-        */
         playCatchSound();
         document.body.classList.add('white-bg');
 
